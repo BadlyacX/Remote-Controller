@@ -65,22 +65,27 @@ def handle_file(service, file):
         print("偵測到 hello.re，開啟記事本！")
         subprocess.run(["notepad.exe"])
 
-    elif filename == 'rickroll.re':
-        print("偵測到 rickroll.re，準備 Rickroll 他！")
-        webbrowser.open("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+    elif filename == 'rick.re':
+        print("偵測到 rick.re，準備 rick 他！")
+        os.system('start cmd /k "curl ascii.live/rick')
 
     elif filename == 'shutdown.re':
         print("偵測到 shutdown.re，將關閉主機...")
-        os.system("shutdown /s /t 0")
+        os.system("shutdown /s /t 0", shell=True)
 
     elif filename == 'restart.re':
         print("偵測到 restart.re，將重啟主機...")
-        os.system("shutdown /r /t 0")
+        os.system("shutdown /r /t 0", shell=True)
 
     elif filename == 'dir.re':
-        print("偵測到 dir.re，開啟 cmd 並跑 color c + dir /s")
-        subprocess.run('start cmd /k "color a && cd /d c: && dir/s"', shell=True)
+        print("偵測到 dir.re，開啟 cmd 並執行 color c + dir /s")
+        subprocess.run('start cmd /k "color a && cd /d c: && dir/s && exit"', shell=True)
 
+    elif filename == 'parrot.re':
+        print("偵測到 parrot.re，開啟 cmd 並執行 curl parrot.live")
+
+        subprocess.run('start cmd /k "curl parrot.live"', shell=True)
+    
     elif filename == 'killAllTask.re':
         print("偵測到 killAllTask.re，關閉所有運行程式（小心使用）")
         for proc in psutil.process_iter():
@@ -93,7 +98,7 @@ def handle_file(service, file):
     print(f"已刪除檔案：{filename}")
 
 def check_and_act(service, folder_id):
-    query = f"('{folder_id}' in parents) and (name='hello.re' or name='rickroll.re' or name='shutdown.re' or name='restart.re' or name='dir.re' or name='killAllTask.re')"
+    query = f"('{folder_id}' in parents) and (name='hello.re' or name='rick.re' or name='shutdown.re' or name='restart.re' or name='dir.re' or name='killAllTask.re' or name='parrot.re')"
     results = service.files().list(
         q=query,
         spaces='drive',
