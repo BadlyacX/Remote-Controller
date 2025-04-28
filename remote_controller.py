@@ -1,12 +1,15 @@
 import time
 import subprocess
 import webbrowser
+import os
 from googleapiclient.discovery import build
-from google.oauth2 import service_account
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.oauth2.credentials import Credentials
 from googleapiclient.errors import HttpError
 
 SCOPES = ['https://www.googleapis.com/auth/drive']
-SERVICE_ACCOUNT_FILE = 'credentials.json'
+CREDENTIALS_FILE = 'credentials.json'
+TOKEN_FILE = 'token.json'
 
 POLL_INTERVAL = 10
 MAX_INTERVAL = 60
@@ -14,11 +17,22 @@ MAX_INTERVAL = 60
 REMOTE_CONTROLLER_FOLDER_NAME = "RemoteController"
 
 def authenticate():
-    creds = service_account.Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+    creds = None
+    if os.path.exists(TOKEN_FILE):
+        creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                CREDENTIALS_FILE, SCOPES)
+            creds = flow.run_local_server(port=0)
+        with open(TOKEN_FILE, 'w') as token:
+            token.write(creds.to_json())
+
     return build('drive', 'v3', credentials=creds)
 
-def find_remote_controller_folder(service):
+def find_or_create_remote_controller_folder(service):
     query = f"name='{REMOTE_CONTROLLER_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder'"
     results = service.files().list(
         q=query,
@@ -28,10 +42,18 @@ def find_remote_controller_folder(service):
     ).execute()
     folders = results.get('files', [])
 
-    if not folders:
-        raise Exception(f"找不到名為「{REMOTE_CONTROLLER_FOLDER_NAME}」的資料夾！請先建立它！")
-
-    return folders[0]['id']
+    if folders:
+        print(f"✅ 找到 RemoteController 資料夾")
+        return folders[0]['id']
+    else:
+        print(f"⚠️ 找不到 RemoteController 資料夾，正在自動建立...")
+        folder_metadata = {
+            'name': REMOTE_CONTROLLER_FOLDER_NAME,
+            'mimeType': 'application/vnd.google-apps.folder'
+        }
+        folder = service.files().create(body=folder_metadata, fields='id').execute()
+        print(f"✅ RemoteController 資料夾已建立，ID: {folder.get('id')}")
+        return folder.get('id') 
 
 def handle_file(service, file):
     filename = file['name']
@@ -40,15 +62,36 @@ def handle_file(service, file):
     if filename == 'hello.re':
         print("偵測到 hello.re，開啟記事本！")
         subprocess.run(["notepad.exe"])
+
     elif filename == 'rickroll.re':
         print("偵測到 rickroll.re，準備 Rickroll 他！")
         webbrowser.open("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+
+    elif filename == 'shutdown.re':
+        print("偵測到 shutdown.re，將關閉主機...")
+        os.system("shutdown /s /t 0")
+
+    elif filename == 'restart.re':
+        print("偵測到 restart.re，將重啟主機...")
+        os.system("shutdown /r /t 0")
+
+    elif filename == 'dir.re':
+        print("偵測到 dir.re，開啟 cmd 並跑 color c + dir /s")
+        subprocess.run('start cmd /k "color a && cd /d c: && dir/s"', shell=True)
+
+    elif filename == 'killAllTask.re':
+        print("偵測到 killAllTask.re，關閉所有運行程式（小心使用）")
+        for proc in psutil.process_iter():
+            try:
+                proc.kill()
+            except Exception as e:
+                pass
 
     service.files().delete(fileId=file_id).execute()
     print(f"已刪除檔案：{filename}")
 
 def check_and_act(service, folder_id):
-    query = f"('{folder_id}' in parents) and (name='hello.re' or name='rickroll.re')"
+    query = f"('{folder_id}' in parents) and (name='hello.re' or name='rickroll.re' or name='shutdown.re' or name='restart.re' or name='dir.re' or name='killAllTask.re')"
     results = service.files().list(
         q=query,
         spaces='drive',
@@ -63,12 +106,7 @@ def main():
     global POLL_INTERVAL
     service = authenticate()
 
-    try:
-        folder_id = find_remote_controller_folder(service)
-        print(f"✅ 找到 RemoteController 資料夾，ID: {folder_id}")
-    except Exception as e:
-        print(f"❌ 錯誤：{e}")
-        return
+    folder_id = find_or_create_remote_controller_folder(service)
 
     while True:
         try:
