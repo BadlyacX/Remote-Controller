@@ -13,23 +13,23 @@ SCOPES = ['https://www.googleapis.com/auth/drive']
 CREDENTIALS_FILE = 'credentials.json'
 TOKEN_FILE = 'token.json'
 
+REMOTE_CONTROLLER_FOLDER_NAME = "RemoteController"
+
 POLL_INTERVAL = 10
 MAX_INTERVAL = 60
 
-REMOTE_CONTROLLER_FOLDER_NAME = "RemoteController"
-
 def authenticate():
     creds = None
-    if os.path.exists(TOKEN_FILE):
-        creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
+    if os.path.exists(resource_path(TOKEN_FILE)):
+        creds = Credentials.from_authorized_user_file(resource_path(TOKEN_FILE), SCOPES)
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
-                CREDENTIALS_FILE, SCOPES)
+                resource_path(CREDENTIALS_FILE), SCOPES)
             creds = flow.run_local_server(port=0)
-        with open(TOKEN_FILE, 'w') as token:
+        with open(resource_path(TOKEN_FILE), 'w') as token:
             token.write(creds.to_json())
 
     return build('drive', 'v3', credentials=creds)
@@ -108,6 +108,12 @@ def check_and_act(service, folder_id):
     items = results.get('files', [])
     for file in items:
         handle_file(service, file)
+
+def resource_path(relative_path):
+    import sys, os
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
 
 def main():
     global POLL_INTERVAL
