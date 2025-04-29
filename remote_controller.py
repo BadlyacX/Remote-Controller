@@ -66,7 +66,7 @@ def handle_file(service, file):
         subprocess.run(["notepad.exe"])
     
     elif filename == 'boom.re':
-        print("偵測到 boom.re，開啟 cmd 並執行 color a + echo boom！")
+        print("偵測到 boom.re，開啟 cmd 準備boom")
         while True:
             subprocess.run('start cmd /k', shell=True)
 
